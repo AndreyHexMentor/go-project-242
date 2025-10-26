@@ -18,3 +18,6 @@ test:
 
 install:
 	go install
+
+clean:
+	rm -f $(BINARY_PATH)
