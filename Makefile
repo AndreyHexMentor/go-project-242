@@ -7,10 +7,13 @@ build:
 	go build -o $(BINARY_PATH) $(SRC_PATH)
 
 run: build
-	$(BINARY_PATH)
+	$(BINARY_PATH) $(ARGS)
 
 lint:
 	golangci-lint run ./...
+
+fmt:
+	goimports -w .
 
 test:
 	go mod tidy
