@@ -1,7 +1,7 @@
 package main
 
 import (
-	pathsize "code"
+	"code/code"
 	"context"
 	"fmt"
 	"log"
@@ -22,7 +22,7 @@ func main() {
 
 			path := args.Get(0)
 
-			res, err := pathsize.GetPathSize(path, false, false, false)
+			res, err := code.GetPathSize(path, false, false, false)
 			if err != nil {
 				return err
 			}
