@@ -28,7 +28,7 @@ func main() {
 
 			human := f.HumanReadable
 			all := f.IncludeAll
-				
+
 			res, err := code.GetPathSize(path, false, human, all)
 			if err != nil {
 				return fmt.Errorf("cannot get size: %w", err)
