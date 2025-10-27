@@ -15,9 +15,9 @@ func GetPathSize(path string, recursive, human, all bool) (string, error) {
 	if !info.IsDir() {
 		// Если это файл, просто возвращаем его размер
 		if !isVisible(info.Name(), all) {
-			return fmt.Sprintf("%s\t%s", formatSize(0, human), path), nil
+			return formatSize(0, human), nil
 		}
-		return fmt.Sprintf("%s\t%s", formatSize(info.Size(), human), path), nil
+		return formatSize(info.Size(), human), nil
 	}
 
 	// Если это директория, начинаем подсчет (результат будет зависеть от флагов)
