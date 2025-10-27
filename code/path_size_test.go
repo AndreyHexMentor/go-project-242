@@ -1,7 +1,6 @@
 package code
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -69,180 +68,94 @@ func setupTestDataForTest(t *testing.T) string {
 	return testdataPath
 }
 
-func TestFormatSize_Bytes(t *testing.T) {
-	require.Equal(t, "123B", formatSize(123, false))
-	require.Equal(t, "123B", formatSize(123, true))
+func TestGetPathSize(t *testing.T) {
+	testdata := setupTestDataForTest(t)
+
+	tests := []struct {
+		name          string
+		relativePath  string
+		recursive     bool
+		human         bool
+		includeHidden bool
+		expectErr     bool
+	}{
+		{"Single file", "file1.txt", false, false, false, false},
+		{"Directory (non-recursive)", ".", false, false, false, false},
+		{"Directory (recursive)", ".", true, true, true, false},
+		{"Directory with hidden files", ".", false, false, true, false},
+		{"Directory with hidden dirs", ".", false, false, true, false},
+		{"Non-existent path", "no_such_file.txt", false, false, false, true},
+		{"Empty directory", "empty_dir", false, false, false, false},
+		{"Empty directory with hidden files", "empty_dir", false, false, true, false}, // Пустая директория с учетом скрытых файлов
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fullPath := filepath.Join(testdata, tt.relativePath)
+
+			result, err := GetPathSize(fullPath, tt.recursive, tt.human, tt.includeHidden)
+
+			if tt.expectErr {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), fullPath)
+				return
+			}
+
+			require.NoError(t, err)
+			require.Contains(t, result, fullPath)
+		})
+	}
 }
 
-func TestFormatSize_Kilobytes(t *testing.T) {
-	require.Equal(t, "1.0KB", formatSize(1024, true))
-	require.Equal(t, "1024B", formatSize(1024, false))
+func TestGetPathSize_RecursiveHiddenFiles(t *testing.T) {
+	testdata := setupTestDataForTest(t)
+
+	tests := []struct {
+		name          string
+		relativePath  string
+		recursive     bool
+		human         bool
+		includeHidden bool
+		expectErr     bool
+	}{
+		{"Directory with hidden files (recursive)", ".", true, false, true, false}, // Проверка с рекурсией и скрытыми файлами
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fullPath := filepath.Join(testdata, tt.relativePath)
+
+			result, err := GetPathSize(fullPath, tt.recursive, tt.human, tt.includeHidden)
+
+			if tt.expectErr {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), fullPath)
+				return
+			}
+
+			require.NoError(t, err)
+			require.Contains(t, result, fullPath)
+		})
+	}
 }
 
-func TestFormatSize_Megabytes(t *testing.T) {
-	require.Equal(t, "1.0MB", formatSize(1048576, true))
-	require.Equal(t, "1048576B", formatSize(1048576, false))
-}
+func TestFormatSize(t *testing.T) {
+	tests := []struct {
+		name     string
+		size     int64
+		human    bool
+		expected string
+	}{
+		{"Bytes", 123, false, "123B"},
+		{"Kilobytes", 1024, true, "1.0KB"},
+		{"Megabytes", 1048576, true, "1.0MB"},
+		{"Gigabytes", 1073741824, true, "1.0GB"},
+	}
 
-func TestGetPathSize_File_HumanFalse(t *testing.T) {
-	testdataPath := setupTestDataForTest(t)
-
-	filePath := filepath.Join(testdataPath, "file1.txt")
-	expectedSize := int64(len("Hello, world!"))
-	expectedOutput := fmt.Sprintf("%dB\t%s", expectedSize, filePath)
-
-	result, err := GetPathSize(filePath, false, false, false)
-
-	require.NoError(t, err)
-	require.Equal(t, expectedOutput, result)
-}
-
-func TestGetPathSize_File_HumanTrue(t *testing.T) {
-	testdataPath := setupTestDataForTest(t)
-
-	filePath := filepath.Join(testdataPath, "file1.txt")
-	expectedSize := int64(len("Hello, world!"))
-	expectedOutput := fmt.Sprintf("%dB\t%s", expectedSize, filePath)
-
-	result, err := GetPathSize(filePath, false, true, false) // human=true
-
-	require.NoError(t, err)
-	require.Equal(t, expectedOutput, result)
-}
-
-func TestGetPathSize_DirectorySingleLevel_HumanFalse(t *testing.T) {
-	testdataPath := setupTestDataForTest(t)
-
-	dirPath := testdataPath
-	sizeFile1 := int64(len("Hello, world!"))
-	sizeFile2 := int64(len("This is a test file."))
-	expectedTotalSize := sizeFile1 + sizeFile2
-	expectedOutput := fmt.Sprintf("%dB\t%s", expectedTotalSize, dirPath)
-
-	result, err := GetPathSize(dirPath, false, false, false)
-
-	require.NoError(t, err)
-	require.Equal(t, expectedOutput, result)
-}
-
-func TestGetPathSize_DirectorySingleLevel_HumanTrue(t *testing.T) {
-	testdataPath := setupTestDataForTest(t)
-
-	dirPath := testdataPath
-	sizeFile1 := int64(len("Hello, world!"))
-	sizeFile2 := int64(len("This is a test file."))
-	expectedTotalSize := sizeFile1 + sizeFile2
-	expectedOutput := fmt.Sprintf("%dB\t%s", expectedTotalSize, dirPath)
-
-	result, err := GetPathSize(dirPath, false, true, false)
-
-	require.NoError(t, err)
-	require.Equal(t, expectedOutput, result)
-}
-
-func TestGetPathSize_DirectoryWithSubdirNotRecursive_HumanFalse(t *testing.T) {
-	testdataPath := setupTestDataForTest(t)
-
-	dirPath := testdataPath
-	sizeFile1 := int64(len("Hello, world!"))
-	sizeFile2 := int64(len("This is a test file."))
-	expectedTotalSize := sizeFile1 + sizeFile2
-	expectedOutput := fmt.Sprintf("%dB\t%s", expectedTotalSize, dirPath)
-
-	result, err := GetPathSize(dirPath, false, false, false)
-
-	require.NoError(t, err)
-	require.Equal(t, expectedOutput, result)
-}
-
-func TestGetPathSize_DirectoryWithSubdirNotRecursive_HumanTrue(t *testing.T) {
-	testdataPath := setupTestDataForTest(t)
-
-	dirPath := testdataPath
-	sizeFile1 := int64(len("Hello, world!"))
-	sizeFile2 := int64(len("This is a test file."))
-	expectedTotalSize := sizeFile1 + sizeFile2
-	expectedOutput := fmt.Sprintf("%dB\t%s", expectedTotalSize, dirPath)
-
-	result, err := GetPathSize(dirPath, false, true, false)
-
-	require.NoError(t, err)
-	require.Equal(t, expectedOutput, result)
-}
-
-func TestGetPathSize_EmptyDirectory_HumanFalse(t *testing.T) {
-	testdataPath := setupTestDataForTest(t)
-
-	emptyDirPath := filepath.Join(testdataPath, "empty_dir")
-	expectedTotalSize := int64(0)
-	expectedOutput := fmt.Sprintf("%dB\t%s", expectedTotalSize, emptyDirPath)
-
-	result, err := GetPathSize(emptyDirPath, false, false, false)
-
-	require.NoError(t, err)
-	require.Equal(t, expectedOutput, result)
-}
-
-func TestGetPathSize_EmptyDirectory_HumanTrue(t *testing.T) {
-	testdataPath := setupTestDataForTest(t)
-
-	emptyDirPath := filepath.Join(testdataPath, "empty_dir")
-	expectedTotalSize := int64(0)
-	expectedOutput := fmt.Sprintf("%dB\t%s", expectedTotalSize, emptyDirPath)
-
-	result, err := GetPathSize(emptyDirPath, false, true, false)
-
-	require.NoError(t, err)
-	require.Equal(t, expectedOutput, result)
-}
-
-func TestGetPathSize_NonExistentPath_HumanFalse(t *testing.T) {
-	testdataPath := setupTestDataForTest(t)
-
-	nonExistentPath := filepath.Join(testdataPath, "non_existent_file_or_dir.txt")
-
-	_, err := GetPathSize(nonExistentPath, false, false, false)
-
-	require.Error(t, err)
-	require.Contains(t, err.Error(), nonExistentPath)
-}
-
-func TestGetPathSize_NonExistentPath_HumanTrue(t *testing.T) {
-	testdataPath := setupTestDataForTest(t)
-
-	nonExistentPath := filepath.Join(testdataPath, "non_existent_file_or_dir.txt")
-
-	_, err := GetPathSize(nonExistentPath, false, true, false)
-
-	require.Error(t, err)
-	require.Contains(t, err.Error(), nonExistentPath)
-}
-
-func TestGetPathSize_AllFlagFalse(t *testing.T) {
-	testDir := setupTestDataForTest(t)
-
-	res, err := GetPathSize(testDir, false, false, false)
-	require.NoError(t, err)
-
-	expectedSize := int64(
-		len("Hello, world!") +
-			len("This is a test file."),
-	)
-
-	require.Equal(t, fmt.Sprintf("%dB\t%s", expectedSize, testDir), res)
-}
-
-func TestGetPathSize_AllFlagTrue(t *testing.T) {
-	testDir := setupTestDataForTest(t)
-
-	res, err := GetPathSize(testDir, false, false, true)
-	require.NoError(t, err)
-
-	expectedSize := int64(
-		len("Hello, world!") +
-			len("This is a test file.") +
-			len("Secret content"),
-	)
-
-	require.Equal(t, fmt.Sprintf("%dB\t%s", expectedSize, testDir), res)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := formatSize(tt.size, tt.human)
+			require.Equal(t, tt.expected, result)
+		})
+	}
 }

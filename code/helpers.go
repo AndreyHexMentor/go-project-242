@@ -2,6 +2,8 @@ package code
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -20,7 +22,6 @@ func isVisible(name string, all bool) bool {
 	return all || !strings.HasPrefix(name, ".")
 }
 
-// FormatSize форматирует размер файла в человекочитаемый формат
 func formatSize(size int64, human bool) string {
 	if !human {
 		// Если human false, возвращаем размер в байтах
@@ -43,4 +44,62 @@ func formatSize(size int64, human bool) string {
 	default:
 		return fmt.Sprintf("%dB", size)
 	}
+}
+
+func calculateDirSize(path string, recursive, all bool) (int64, error) {
+	// Начинаем с размера текущей директории
+	dirSize, err := processDir(path, recursive, all)
+	if err != nil {
+		return 0, err
+	}
+	return dirSize, nil
+}
+
+func processFile(path string, all bool) (int64, error) {
+	info, err := os.Lstat(path)
+	if err != nil {
+		return 0, fmt.Errorf("cannot access file %q: %w", path, err)
+	}
+	if !info.IsDir() && isVisible(info.Name(), all) {
+		return info.Size(), nil
+	}
+	return 0, nil
+}
+
+func processDir(path string, recursive, all bool) (int64, error) {
+	var total int64
+
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		return 0, fmt.Errorf("cannot read directory %q: %w", path, err)
+	}
+
+	for _, entry := range entries {
+		if !isVisible(entry.Name(), all) {
+			continue
+		}
+
+		fullPath := filepath.Join(path, entry.Name())
+
+		// Обрабатываем только файлы
+		if entry.Type().IsRegular() {
+			fileSize, err := processFile(fullPath, all)
+			if err != nil {
+				return 0, err
+			}
+			total += fileSize
+			continue
+		}
+
+		// Обрабатываем поддиректории, если установлен флаг recursive
+		if entry.Type().IsDir() && recursive {
+			subDirSize, err := calculateDirSize(fullPath, recursive, all)
+			if err != nil {
+				return 0, err
+			}
+			total += subDirSize
+		}
+	}
+
+	return total, nil
 }

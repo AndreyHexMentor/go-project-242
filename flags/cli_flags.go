@@ -10,6 +10,7 @@ import (
 type Flags struct {
 	HumanReadable bool
 	IncludeAll    bool
+	Recursive     bool
 }
 
 // DefineFlags возвращает массив cli.Flag и привязывает значения к структуре Flags
@@ -18,7 +19,7 @@ func DefineFlags(f *Flags) []cli.Flag {
 		&cli.BoolFlag{
 			Name:    "human",
 			Aliases: []string{"H"},
-			Usage:   "human-readable sizes (auto-select unit)",
+			Usage:   "human-readable sizes (auto-select unit) (default: false)",
 			Value:   false,
 			Action: func(_ context.Context, _ *cli.Command, b bool) error {
 				f.HumanReadable = b
@@ -28,13 +29,22 @@ func DefineFlags(f *Flags) []cli.Flag {
 		&cli.BoolFlag{
 			Name:    "all",
 			Aliases: []string{"a"},
-			Usage:   "include hidden files and directories",
+			Usage:   "include hidden files and directories (default: false)",
 			Value:   false,
 			Action: func(_ context.Context, _ *cli.Command, b bool) error {
 				f.IncludeAll = b
 				return nil
 			},
 		},
-		// Здесь будем также добавлять остальные флаги
+		&cli.BoolFlag{
+			Name:    "recursive",
+			Aliases: []string{"r"},
+			Usage:   "recursive size of directories (default: false)",
+			Value:   false,
+			Action: func(_ context.Context, _ *cli.Command, b bool) error {
+				f.Recursive = b
+				return nil
+			},
+		},
 	}
 }
