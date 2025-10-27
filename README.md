@@ -27,7 +27,7 @@ go install github.com/AndreyHexMentor/go-project-242/cmd/hexlet-path-size@latest
 
 ### Asciinema
 
-[![asciicast](https://asciinema.org/a/EMMBO9kuVWT9xX2buV49d7fVu.svg)](https://asciinema.org/a/EMMBO9kuVWT9xX2buV49d7fVu)
+[![asciicast](https://asciinema.org/a/751841.svg)](https://asciinema.org/a/751841)
 
 ### Примеры
 
