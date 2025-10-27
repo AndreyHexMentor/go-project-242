@@ -27,5 +27,5 @@ func GetPathSize(path string, recursive, human, all bool) (string, error) {
 	}
 
 	// Возвращаем общий размер директории
-	return fmt.Sprintf("%s\t%s", formatSize(total, human), path), nil
+	return formatSize(total, human), nil
 }
