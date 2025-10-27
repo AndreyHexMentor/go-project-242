@@ -6,8 +6,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/AndreyHexMentor/go-project-242/code"
-	"github.com/AndreyHexMentor/go-project-242/flags"
+	"code/code"
+	"code/flags"
 
 	"github.com/urfave/cli/v3"
 )
