@@ -1,6 +1,9 @@
 package code
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // Constants для конвертации при флаге human
 const (
@@ -13,8 +16,12 @@ const (
 	EB = 1024 * PB // Exabyte
 )
 
+func isVisible(name string, all bool) bool {
+	return all || !strings.HasPrefix(name, ".")
+}
+
 // FormatSize форматирует размер файла в человекочитаемый формат
-func FormatSize(size int64, human bool) string {
+func formatSize(size int64, human bool) string {
 	if !human {
 		// Если human false, возвращаем размер в байтах
 		return fmt.Sprintf("%dB", size)

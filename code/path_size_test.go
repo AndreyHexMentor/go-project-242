@@ -15,9 +15,11 @@ func setupTestDataForTest(t *testing.T) string {
 
 	testdataPath := filepath.Join(currentDir, "testdata")
 
+	// чистим старые данные
 	err = os.RemoveAll(testdataPath)
 	require.NoError(t, err, "Failed to clean up previous testdata directory at %s", testdataPath)
 
+	// создаём структуру директорий
 	err = os.MkdirAll(testdataPath, 0750)
 	require.NoError(t, err, "Failed to create testdata directory at %s", testdataPath)
 
@@ -25,6 +27,7 @@ func setupTestDataForTest(t *testing.T) string {
 	err = os.MkdirAll(subdirPath, 0750)
 	require.NoError(t, err, "Failed to create subdir directory at %s", subdirPath)
 
+	// обычные файлы
 	filesToCreate := map[string]string{
 		"file1.txt":        "Hello, world!",
 		"file2.txt":        "This is a test file.",
@@ -37,6 +40,28 @@ func setupTestDataForTest(t *testing.T) string {
 		require.NoError(t, err, "Failed to write file: %s", fullPath)
 	}
 
+	// скрытые файлы
+	hiddenFiles := map[string]string{
+		".hidden1.txt":        "Secret content",
+		"subdir/.hidden2.txt": "Another secret",
+	}
+	for relativePath, content := range hiddenFiles {
+		fullPath := filepath.Join(testdataPath, relativePath)
+		err := os.WriteFile(fullPath, []byte(content), 0600)
+		require.NoError(t, err, "Failed to write hidden file: %s", fullPath)
+	}
+
+	// скрытые директории
+	hiddenDirs := []string{
+		filepath.Join(testdataPath, ".hidden_dir"),
+		filepath.Join(testdataPath, "subdir/.hidden_subdir"),
+	}
+	for _, dir := range hiddenDirs {
+		err := os.MkdirAll(dir, 0750)
+		require.NoError(t, err, "Failed to create hidden directory at %s", dir)
+	}
+
+	// пустая директория
 	emptyDirPath := filepath.Join(testdataPath, "empty_dir")
 	err = os.Mkdir(emptyDirPath, 0750)
 	require.NoError(t, err, "Failed to create empty_dir directory at %s", emptyDirPath)
@@ -45,18 +70,18 @@ func setupTestDataForTest(t *testing.T) string {
 }
 
 func TestFormatSize_Bytes(t *testing.T) {
-	require.Equal(t, "123B", FormatSize(123, false))
-	require.Equal(t, "123B", FormatSize(123, true))
+	require.Equal(t, "123B", formatSize(123, false))
+	require.Equal(t, "123B", formatSize(123, true))
 }
 
 func TestFormatSize_Kilobytes(t *testing.T) {
-	require.Equal(t, "1.0KB", FormatSize(1024, true))
-	require.Equal(t, "1024B", FormatSize(1024, false))
+	require.Equal(t, "1.0KB", formatSize(1024, true))
+	require.Equal(t, "1024B", formatSize(1024, false))
 }
 
 func TestFormatSize_Megabytes(t *testing.T) {
-	require.Equal(t, "1.0MB", FormatSize(1048576, true))
-	require.Equal(t, "1048576B", FormatSize(1048576, false))
+	require.Equal(t, "1.0MB", formatSize(1048576, true))
+	require.Equal(t, "1048576B", formatSize(1048576, false))
 }
 
 func TestGetPathSize_File_HumanFalse(t *testing.T) {
@@ -191,4 +216,33 @@ func TestGetPathSize_NonExistentPath_HumanTrue(t *testing.T) {
 
 	require.Error(t, err)
 	require.Contains(t, err.Error(), nonExistentPath)
+}
+
+func TestGetPathSize_AllFlagFalse(t *testing.T) {
+	testDir := setupTestDataForTest(t)
+
+	res, err := GetPathSize(testDir, false, false, false)
+	require.NoError(t, err)
+
+	expectedSize := int64(
+		len("Hello, world!") +
+			len("This is a test file."),
+	)
+
+	require.Equal(t, fmt.Sprintf("%dB\t%s", expectedSize, testDir), res)
+}
+
+func TestGetPathSize_AllFlagTrue(t *testing.T) {
+	testDir := setupTestDataForTest(t)
+
+	res, err := GetPathSize(testDir, false, false, true)
+	require.NoError(t, err)
+
+	expectedSize := int64(
+		len("Hello, world!") +
+			len("This is a test file.") +
+			len("Secret content"),
+	)
+
+	require.Equal(t, fmt.Sprintf("%dB\t%s", expectedSize, testDir), res)
 }
