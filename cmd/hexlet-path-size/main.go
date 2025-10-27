@@ -1,12 +1,13 @@
 package main
 
 import (
-	"code/code"
-	"code/flags"
 	"context"
 	"fmt"
 	"log"
 	"os"
+
+	"github.com/AndreyHexMentor/go-project-242/code"
+	"github.com/AndreyHexMentor/go-project-242/flags"
 
 	"github.com/urfave/cli/v3"
 )
