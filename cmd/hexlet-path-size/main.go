@@ -2,6 +2,7 @@ package main
 
 import (
 	"code/code"
+	"code/flags"
 	"context"
 	"fmt"
 	"log"
@@ -11,20 +12,25 @@ import (
 )
 
 func main() {
+	f := &flags.Flags{}
+
 	cmd := &cli.Command{
 		Name:  "hexlet-path-size",
 		Usage: "print size of a file or directory",
-		Action: func(_ context.Context, c *cli.Command) error {
-			args := c.Args()
-			if args.Len() == 0 {
-				return fmt.Errorf("no path provided")
+		Flags: flags.DefineFlags(f),
+		Action: func(_ context.Context, cmd *cli.Command) error {
+			if cmd.NArg() == 0 {
+				fmt.Println("Usage: hexlet-path-size [--human] <path>")
+				return nil
 			}
 
-			path := args.Get(0)
+			path := cmd.Args().Get(0)
 
-			res, err := code.GetPathSize(path, false, false, false)
+			human := f.HumanReadable
+
+			res, err := code.GetPathSize(path, false, human, false)
 			if err != nil {
-				return err
+				return fmt.Errorf("cannot get size: %w", err)
 			}
 
 			fmt.Println(res)
