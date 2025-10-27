@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	f := &flags.Flags{}
+	var f = &flags.Flags{}
 
 	cmd := &cli.Command{
 		Name:  "hexlet-path-size",
@@ -27,8 +27,9 @@ func main() {
 			path := cmd.Args().Get(0)
 
 			human := f.HumanReadable
-
-			res, err := code.GetPathSize(path, false, human, false)
+			all := f.IncludeAll
+				
+			res, err := code.GetPathSize(path, false, human, all)
 			if err != nil {
 				return fmt.Errorf("cannot get size: %w", err)
 			}
