@@ -77,16 +77,17 @@ func TestGetPathSize(t *testing.T) {
 		recursive     bool
 		human         bool
 		includeHidden bool
+		expectedSize  string
 		expectErr     bool
 	}{
-		{"Single file", "file1.txt", false, false, false, false},
-		{"Directory (non-recursive)", ".", false, false, false, false},
-		{"Directory (recursive)", ".", true, true, true, false},
-		{"Directory with hidden files", ".", false, false, true, false},
-		{"Directory with hidden dirs", ".", false, false, true, false},
-		{"Non-existent path", "no_such_file.txt", false, false, false, true},
-		{"Empty directory", "empty_dir", false, false, false, false},
-		{"Empty directory with hidden files", "empty_dir", false, false, true, false}, // Пустая директория с учетом скрытых файлов
+		{"Single file", "file1.txt", false, false, false, "13B", false},
+		{"Directory (non-recursive)", ".", false, false, false, "33B", false},
+		{"Directory (recursive)", ".", true, true, true, "118B", false},
+		{"Directory with hidden files", ".", false, false, true, "47B", false},
+		{"Directory with hidden dirs", ".", false, false, true, "47B", false},
+		{"Non-existent path", "no_such_file.txt", false, false, false, "", true},
+		{"Empty directory", "empty_dir", false, false, false, "0B", false},
+		{"Empty directory with hidden files", "empty_dir", false, false, true, "0B", false},
 	}
 
 	for _, tt := range tests {
@@ -102,7 +103,7 @@ func TestGetPathSize(t *testing.T) {
 			}
 
 			require.NoError(t, err)
-			require.Contains(t, result, fullPath)
+			require.Equal(t, tt.expectedSize, result)
 		})
 	}
 }
@@ -116,9 +117,10 @@ func TestGetPathSize_RecursiveHiddenFiles(t *testing.T) {
 		recursive     bool
 		human         bool
 		includeHidden bool
+		expectedSize  string
 		expectErr     bool
 	}{
-		{"Directory with hidden files (recursive)", ".", true, false, true, false}, // Проверка с рекурсией и скрытыми файлами
+		{"Directory with hidden files (recursive)", ".", true, false, true, "118B", false},
 	}
 
 	for _, tt := range tests {
@@ -134,7 +136,7 @@ func TestGetPathSize_RecursiveHiddenFiles(t *testing.T) {
 			}
 
 			require.NoError(t, err)
-			require.Contains(t, result, fullPath)
+			require.Equal(t, tt.expectedSize, result)
 		})
 	}
 }

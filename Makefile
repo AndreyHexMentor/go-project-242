@@ -32,7 +32,7 @@ test:
 	@echo "Cleaning testdata..."
 	@rm -rf ./testdata
 	@echo "Running tests..."
-	go test -v ./code/...
+	go test -v ./...
 
 clean:
 	rm -f $(BINARY_PATH)
