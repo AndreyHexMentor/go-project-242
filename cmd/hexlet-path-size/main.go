@@ -1,12 +1,12 @@
 package main
 
 import (
+	"code"
 	"context"
 	"fmt"
 	"log"
 	"os"
 
-	"code/code"
 	"code/flags"
 
 	"github.com/urfave/cli/v3"
@@ -31,7 +31,7 @@ func main() {
 			all := f.IncludeAll
 			recursive := f.Recursive
 
-			res, err := code.GetPathSize(path, recursive, human, all)
+			res, err := go_project_242.GetPathSize(path, recursive, human, all)
 			if err != nil {
 				return fmt.Errorf("cannot get size: %w", err)
 			}
