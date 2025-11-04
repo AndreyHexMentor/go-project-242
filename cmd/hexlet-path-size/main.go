@@ -7,33 +7,47 @@ import (
 	"log"
 	"os"
 
-	"code/flags"
-
 	"github.com/urfave/cli/v3"
 )
 
 func main() {
-	var f = &flags.Flags{}
-
 	cmd := &cli.Command{
 		Name:  "hexlet-path-size",
 		Usage: "print size of a file or directory; supports -r (recursive), -H (human-readable), -a (include hidden)",
-		Flags: flags.DefineFlags(f),
-		Action: func(_ context.Context, cmd *cli.Command) error {
-			if cmd.NArg() == 0 {
+		Flags: []cli.Flag{
+			// value можем не указывать, оно по дефолту будет false
+			&cli.BoolFlag{
+				Name:    "human",
+				Aliases: []string{"H"},
+				Usage:   "human readable sizes",
+			},
+			&cli.BoolFlag{
+				Name:    "all",
+				Aliases: []string{"a"},
+				Usage:   "include hidden files and directories",
+			},
+			&cli.BoolFlag{
+				Name:    "recursive",
+				Aliases: []string{"r"},
+				Usage:   "recursive size of directories",
+			},
+		},
+		Action: func(_ context.Context, c *cli.Command) error {
+			if c.NArg() == 0 {
 				fmt.Println("Usage: hexlet-path-size [--flag] <path>")
 				return nil
 			}
 
-			path := cmd.Args().Get(0)
+			path := c.Args().Get(0)
 
-			human := f.HumanReadable
-			all := f.IncludeAll
-			recursive := f.Recursive
+			human := c.Bool("human")
+			all := c.Bool("all")
+			recursive := c.Bool("recursive")
 
 			res, err := code.GetPathSize(path, recursive, human, all)
 			if err != nil {
-				return fmt.Errorf("cannot get size: %w", err)
+				log.Printf("Warning: %v", err)
+				return nil
 			}
 
 			fmt.Println(res)

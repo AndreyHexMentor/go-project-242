@@ -3,7 +3,7 @@ BINARY_NAME=hexlet-path-size
 BINARY_PATH=bin/$(BINARY_NAME)
 SRC_PATH=./cmd/hexlet-path-size
 
-.PHONY: all build run lint fmt test clean run_human
+.PHONY: all build run lint fmt test clean run_human setup-testdata
 
 build:
 	@echo "Building $(BINARY_NAME)..."
@@ -33,6 +33,15 @@ test:
 	@rm -rf ./testdata
 	@echo "Running tests..."
 	go test -v ./...
+
+setup-testdata:
+	@mkdir -p testdata/dir/nested
+	@echo "hello" > testdata/file.txt
+	@echo "a" > testdata/dir/a.txt
+	@echo "hidden" > testdata/dir/.hidden
+	@echo "nested" > testdata/dir/nested/nested.txt
+	@if [ ! -e testdata/symlink ]; then ln -s file.txt testdata/symlink || true; fi
+	@echo "testdata prepared"
 
 clean:
 	rm -f $(BINARY_PATH)

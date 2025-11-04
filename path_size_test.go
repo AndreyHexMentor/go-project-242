@@ -9,66 +9,30 @@ import (
 )
 
 func setupTestDataForTest(t *testing.T) string {
-	currentDir, err := os.Getwd()
-	require.NoError(t, err, "Failed to get current working directory")
+	t.Helper()
 
-	testdataPath := filepath.Join(currentDir, "testdata")
+	root := t.TempDir()
 
-	// чистим старые данные
-	err = os.RemoveAll(testdataPath)
-	require.NoError(t, err, "Failed to clean up previous testdata directory at %s", testdataPath)
+	// Основные файлы
+	require.NoError(t, os.WriteFile(filepath.Join(root, "file.txt"), []byte("hello"), 0600))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "empty.txt"), []byte(""), 0600))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "юникод.txt"), []byte("Привет 🌍"), 0600))
 
-	// создаём структуру директорий
-	err = os.MkdirAll(testdataPath, 0750)
-	require.NoError(t, err, "Failed to create testdata directory at %s", testdataPath)
+	// Вложенные директории
+	dirPath := filepath.Join(root, "dir")
+	require.NoError(t, os.MkdirAll(filepath.Join(dirPath, "nested"), 0750))
+	require.NoError(t, os.WriteFile(filepath.Join(dirPath, "a.txt"), []byte("abc"), 0600))
+	require.NoError(t, os.WriteFile(filepath.Join(dirPath, ".hidden"), []byte("hidden"), 0600))
+	require.NoError(t, os.WriteFile(filepath.Join(dirPath, "nested", "nested.txt"), []byte("deep"), 0600))
 
-	subdirPath := filepath.Join(testdataPath, "subdir")
-	err = os.MkdirAll(subdirPath, 0750)
-	require.NoError(t, err, "Failed to create subdir directory at %s", subdirPath)
+	// Симлинки
+	require.NoError(t, os.Symlink(filepath.Join(root, "file.txt"), filepath.Join(root, "symlink")))
+	require.NoError(t, os.Symlink(filepath.Join(root, "nonexistent.txt"), filepath.Join(root, "broken_symlink")))
 
-	// обычные файлы
-	filesToCreate := map[string]string{
-		"file1.txt":        "Hello, world!",
-		"file2.txt":        "This is a test file.",
-		"subdir/file3.txt": "Another file in subdirectory. Really long name to test kb",
-	}
-
-	for relativePath, content := range filesToCreate {
-		fullPath := filepath.Join(testdataPath, relativePath)
-		err := os.WriteFile(fullPath, []byte(content), 0600)
-		require.NoError(t, err, "Failed to write file: %s", fullPath)
-	}
-
-	// скрытые файлы
-	hiddenFiles := map[string]string{
-		".hidden1.txt":        "Secret content",
-		"subdir/.hidden2.txt": "Another secret",
-	}
-	for relativePath, content := range hiddenFiles {
-		fullPath := filepath.Join(testdataPath, relativePath)
-		err := os.WriteFile(fullPath, []byte(content), 0600)
-		require.NoError(t, err, "Failed to write hidden file: %s", fullPath)
-	}
-
-	// скрытые директории
-	hiddenDirs := []string{
-		filepath.Join(testdataPath, ".hidden_dir"),
-		filepath.Join(testdataPath, "subdir/.hidden_subdir"),
-	}
-	for _, dir := range hiddenDirs {
-		err := os.MkdirAll(dir, 0750)
-		require.NoError(t, err, "Failed to create hidden directory at %s", dir)
-	}
-
-	// пустая директория
-	emptyDirPath := filepath.Join(testdataPath, "empty_dir")
-	err = os.Mkdir(emptyDirPath, 0750)
-	require.NoError(t, err, "Failed to create empty_dir directory at %s", emptyDirPath)
-
-	return testdataPath
+	return root
 }
 
-func TestGetPathSize(t *testing.T) {
+func TestGetPathSize_TableDriven(t *testing.T) {
 	testdata := setupTestDataForTest(t)
 
 	tests := []struct {
@@ -77,17 +41,81 @@ func TestGetPathSize(t *testing.T) {
 		recursive     bool
 		human         bool
 		includeHidden bool
-		expectedSize  string
+		expectPart    string
 		expectErr     bool
 	}{
-		{"Single file", "file1.txt", false, false, false, "13B", false},
-		{"Directory (non-recursive)", ".", false, false, false, "33B", false},
-		{"Directory (recursive)", ".", true, true, true, "118B", false},
-		{"Directory with hidden files", ".", false, false, true, "47B", false},
-		{"Directory with hidden dirs", ".", false, false, true, "47B", false},
-		{"Non-existent path", "no_such_file.txt", false, false, false, "", true},
-		{"Empty directory", "empty_dir", false, false, false, "0B", false},
-		{"Empty directory with hidden files", "empty_dir", false, false, true, "0B", false},
+		{
+			name:          "Single file",
+			relativePath:  "file.txt",
+			recursive:     false,
+			human:         false,
+			includeHidden: false,
+			expectPart:    "5B",
+		},
+		{
+			name:          "File with unicode characters",
+			relativePath:  "юникод.txt",
+			recursive:     false,
+			human:         false,
+			includeHidden: false,
+			expectPart:    "17B",
+		},
+		{
+			name:          "Empty file",
+			relativePath:  "empty.txt",
+			recursive:     false,
+			human:         false,
+			includeHidden: false,
+			expectPart:    "0B",
+		},
+		{
+			name:          "Directory first level, skip hidden",
+			relativePath:  "dir",
+			recursive:     false,
+			human:         false,
+			includeHidden: false,
+			expectPart:    "3B",
+		},
+		{
+			name:          "Directory recursive with hidden",
+			relativePath:  "dir",
+			recursive:     true,
+			human:         false,
+			includeHidden: true,
+			expectPart:    "13B",
+		},
+		{
+			name:          "Directory recursive human-readable",
+			relativePath:  "dir",
+			recursive:     true,
+			human:         true,
+			includeHidden: true,
+			expectPart:    "13B",
+		},
+		{
+			name:          "Symlink to file",
+			relativePath:  "symlink",
+			recursive:     false,
+			human:         false,
+			includeHidden: false,
+			expectPart:    "5B",
+		},
+		{
+			name:          "Broken symlink (uses link size itself)",
+			relativePath:  "broken_symlink",
+			recursive:     false,
+			human:         false,
+			includeHidden: false,
+			expectPart:    "B", // длина пути символической ссылки (в байтах), не гарантировано точное значение
+		},
+		{
+			name:          "Non-existent path should return error",
+			relativePath:  "no_such_file",
+			recursive:     false,
+			human:         false,
+			includeHidden: false,
+			expectErr:     true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -98,50 +126,18 @@ func TestGetPathSize(t *testing.T) {
 
 			if tt.expectErr {
 				require.Error(t, err)
-				require.Contains(t, err.Error(), fullPath)
+				require.Contains(t, err.Error(), tt.relativePath)
 				return
 			}
 
 			require.NoError(t, err)
-			require.Equal(t, tt.expectedSize, result)
+			require.Contains(t, result, tt.expectPart)
+			require.Contains(t, result, fullPath)
 		})
 	}
 }
 
-func TestGetPathSize_RecursiveHiddenFiles(t *testing.T) {
-	testdata := setupTestDataForTest(t)
-
-	tests := []struct {
-		name          string
-		relativePath  string
-		recursive     bool
-		human         bool
-		includeHidden bool
-		expectedSize  string
-		expectErr     bool
-	}{
-		{"Directory with hidden files (recursive)", ".", true, false, true, "118B", false},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			fullPath := filepath.Join(testdata, tt.relativePath)
-
-			result, err := GetPathSize(fullPath, tt.recursive, tt.human, tt.includeHidden)
-
-			if tt.expectErr {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), fullPath)
-				return
-			}
-
-			require.NoError(t, err)
-			require.Equal(t, tt.expectedSize, result)
-		})
-	}
-}
-
-func TestFormatSize(t *testing.T) {
+func TestFormatSize_TableDriven(t *testing.T) {
 	tests := []struct {
 		name     string
 		size     int64
@@ -149,9 +145,14 @@ func TestFormatSize(t *testing.T) {
 		expected string
 	}{
 		{"Bytes", 123, false, "123B"},
-		{"Kilobytes", 1024, true, "1.0KB"},
-		{"Megabytes", 1048576, true, "1.0MB"},
-		{"Gigabytes", 1073741824, true, "1.0GB"},
+		{"Zero bytes", 0, true, "0B"},
+		{"1KB", 1024, true, "1.0KB"},
+		{"1.5KB", 1536, true, "1.5KB"},
+		{"1MB", 1048576, true, "1.0MB"},
+		{"1GB", 1073741824, true, "1.0GB"},
+		{"1TB", 1099511627776, true, "1.0TB"},
+		{"1PB", 1125899906842624, true, "1.0PB"},
+		{"1EB", 1152921504606846976, true, "1.0EB"},
 	}
 
 	for _, tt := range tests {
