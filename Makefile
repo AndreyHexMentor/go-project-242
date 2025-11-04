@@ -40,6 +40,7 @@ setup-testdata:
 	@echo "a" > testdata/dir/a.txt
 	@echo "hidden" > testdata/dir/.hidden
 	@echo "nested" > testdata/dir/nested/nested.txt
+	@echo "Привет 🌍" > testdata/юникод.txt
 	@if [ ! -e testdata/symlink ]; then ln -s file.txt testdata/symlink || true; fi
 	@echo "testdata prepared"
 
