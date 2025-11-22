@@ -132,7 +132,6 @@ func TestGetPathSize_TableDriven(t *testing.T) {
 
 			require.NoError(t, err)
 			require.Contains(t, result, tt.expectPart)
-			require.Contains(t, result, fullPath)
 		})
 	}
 }
